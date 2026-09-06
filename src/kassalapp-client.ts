@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compactSearchResult, comparePrices } from "./format.js";
+import { compactListItem, compactSearchResult, compactShoppingList, comparePrices } from "./format.js";
 import type {
   EanResponse,
   Paginated,
@@ -13,6 +13,8 @@ import type {
   PriceHistoryOptions,
   Product,
   ProductSearchOptions,
+  ShoppingList,
+  ShoppingListItem,
   StoreSearchOptions,
 } from "./types.js";
 
@@ -113,7 +115,7 @@ export class KassalappClient {
     path: string,
     options: {
       query?: Record<string, string | number | boolean | undefined>;
-      method?: "GET" | "POST";
+      method?: "GET" | "POST" | "PATCH" | "DELETE";
       body?: unknown;
       retried?: boolean;
     } = {},
@@ -141,6 +143,8 @@ export class KassalappClient {
     if (!response.ok) {
       throw new KassalappApiError(`${options.method ?? "GET"} ${path} failed`, response.status, await response.text());
     }
+    // DELETE svarer 204 uten innhold.
+    if (response.status === 204) return undefined as T;
     return (await response.json()) as T;
   }
 
@@ -206,5 +210,69 @@ export class KassalappClient {
   async getStore(id: number): Promise<PhysicalStore> {
     const raw = await this.request<{ data: PhysicalStore }>(`/physical-stores/${id}`);
     return raw.data;
+  }
+
+  // --- Handlelister ---------------------------------------------------------
+  // Endepunktene er udokumenterte i kassal.app sin API-dokumentasjon, men
+  // verifisert mot API-et (september 2026). Kan endres uten varsel.
+
+  /** Alle handlelistene på kontoen (uten items). */
+  async getShoppingLists() {
+    const raw = await this.request<{ data: ShoppingList[] }>("/shopping-lists");
+    return raw.data.map(({ id, title, updated_at }) => ({ id, title, updated_at }));
+  }
+
+  /** Én handleliste med items; hver produktkoblet vare får billigste butikk. */
+  async getShoppingList(id: number) {
+    const raw = await this.request<{ data: ShoppingList }>(`/shopping-lists/${id}`, {
+      query: { include: "items" },
+    });
+    return compactShoppingList(raw.data);
+  }
+
+  async createShoppingList(title: string) {
+    const raw = await this.request<{ data: ShoppingList }>("/shopping-lists", {
+      method: "POST",
+      body: { title },
+    });
+    return { id: raw.data.id, title: raw.data.title };
+  }
+
+  async renameShoppingList(id: number, title: string) {
+    const raw = await this.request<{ data: ShoppingList }>(`/shopping-lists/${id}`, {
+      method: "PATCH",
+      body: { title },
+    });
+    return { id: raw.data.id, title: raw.data.title };
+  }
+
+  async deleteShoppingList(id: number): Promise<void> {
+    await this.request<unknown>(`/shopping-lists/${id}`, { method: "DELETE" });
+  }
+
+  /** Legger til en vare. product_id (fra produktsøk) kobler varen til et
+   *  produkt slik at listen viser billigste butikk; uten blir det ren tekst. */
+  async addShoppingListItem(listId: number, text: string, productId?: number) {
+    const raw = await this.request<{ data: ShoppingListItem }>(
+      `/shopping-lists/${listId}/items`,
+      { method: "POST", body: { text, ...(productId !== undefined ? { product_id: productId } : {}) } },
+    );
+    return compactListItem(raw.data);
+  }
+
+  async updateShoppingListItem(
+    listId: number,
+    itemId: number,
+    changes: { text?: string; checked?: boolean; product_id?: number },
+  ) {
+    const raw = await this.request<{ data: ShoppingListItem }>(
+      `/shopping-lists/${listId}/items/${itemId}`,
+      { method: "PATCH", body: changes },
+    );
+    return compactListItem(raw.data);
+  }
+
+  async deleteShoppingListItem(listId: number, itemId: number): Promise<void> {
+    await this.request<unknown>(`/shopping-lists/${listId}/items/${itemId}`, { method: "DELETE" });
   }
 }

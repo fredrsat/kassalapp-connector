@@ -1,7 +1,7 @@
 // Komprimerer kassal.app-svar til det en agent faktisk trenger — fulle
 // API-svar med beskrivelser, næringsinnhold osv. er unødvendig store når
 // målet bare er å sammenligne priser.
-import type { EanResponse, Paginated, Product } from "./types.js";
+import type { EanResponse, Paginated, Product, ShoppingList, ShoppingListItem } from "./types.js";
 
 export interface CompactProduct {
   id: number;
@@ -118,5 +118,42 @@ export function comparePrices(
     stale_offers_excluded: offers.filter((o) => o.stale).length,
     allergens: response.allergens,
     nutrition: response.nutrition,
+  };
+}
+
+export interface CompactListItem {
+  id: number;
+  text: string;
+  checked?: boolean;
+  ean?: string;
+  cheapest?: { store?: string; price?: number };
+  potential_saving?: number;
+  offer_count?: number;
+}
+
+/** Handleliste-items kommer med en full kryssbutikk-sammenligning innebygd
+ *  per vare — her kokes den ned til billigste butikk og besparelse, så en
+ *  liste på 30 varer ikke sprenger konteksten. Detaljer hentes ved behov
+ *  med compare_prices_by_ean. */
+export function compactListItem(item: ShoppingListItem, now: Date = new Date()): CompactListItem {
+  const compact: CompactListItem = { id: item.id, text: item.text, checked: item.checked };
+  if (item.product) {
+    const comparison = comparePrices(item.product, now);
+    compact.ean = comparison.ean;
+    if (comparison.cheapest) {
+      compact.cheapest = { store: comparison.cheapest.store, price: comparison.cheapest.price };
+    }
+    compact.potential_saving = comparison.potential_saving;
+    compact.offer_count = comparison.offers.length;
+  }
+  return compact;
+}
+
+export function compactShoppingList(list: ShoppingList, now: Date = new Date()) {
+  return {
+    id: list.id,
+    title: list.title,
+    items: list.items?.map((item) => compactListItem(item, now)),
+    updated_at: list.updated_at,
   };
 }

@@ -76,6 +76,27 @@ export interface PhysicalStore {
   [key: string]: unknown;
 }
 
+/** Handleliste-item. `product` er et innebygd EAN-sammenligningsobjekt når
+ *  varen ble lagt til med product_id, ellers null (ren tekstvare). */
+export interface ShoppingListItem {
+  id: number;
+  text: string;
+  checked?: boolean;
+  product?: EanResponse | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+export interface ShoppingList {
+  id: number;
+  title: string;
+  items?: ShoppingListItem[];
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
 export interface ProductSearchOptions {
   search?: string;
   store?: string;

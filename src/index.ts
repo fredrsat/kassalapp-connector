@@ -25,6 +25,15 @@ Usage:
   kassalapp-connector store search [query] [--group KIWI] [--lat X --lng Y --km N]
   kassalapp-connector store get <store_id>
 
+  kassalapp-connector list ls                   Show all shopping lists
+  kassalapp-connector list get <list_id>        Show a list with items
+  kassalapp-connector list create <title>
+  kassalapp-connector list rename <list_id> <title>
+  kassalapp-connector list delete <list_id> --confirmation "DELETE LIST"
+  kassalapp-connector list add <list_id> <text> [--product <product_id>]
+  kassalapp-connector list check <list_id> <item_id> [--uncheck]
+  kassalapp-connector list remove-item <list_id> <item_id>
+
   kassalapp-connector settings                  Show connector settings
 
 Get an API key at https://kassal.app/api (free for personal use, 60 req/min).
@@ -127,6 +136,65 @@ async function main(): Promise<void> {
       const id = Number(rest[0]);
       if (!Number.isInteger(id)) throw new Error("Missing <store_id>");
       print(await client.getStore(id));
+      return;
+    }
+
+    case "list ls":
+      print(await client.getShoppingLists());
+      return;
+    case "list get": {
+      const id = Number(rest[0]);
+      if (!Number.isInteger(id)) throw new Error("Missing <list_id>");
+      print(await client.getShoppingList(id));
+      return;
+    }
+    case "list create": {
+      const title = rest.filter((a) => !a.startsWith("--")).join(" ");
+      if (!title) throw new Error("Missing <title>");
+      print(await client.createShoppingList(title));
+      return;
+    }
+    case "list rename": {
+      const id = Number(rest[0]);
+      const title = rest.slice(1).filter((a) => !a.startsWith("--")).join(" ");
+      if (!Number.isInteger(id) || !title) throw new Error("Usage: list rename <list_id> <title>");
+      print(await client.renameShoppingList(id, title));
+      return;
+    }
+    case "list delete": {
+      const id = Number(rest[0]);
+      if (!Number.isInteger(id)) throw new Error("Missing <list_id>");
+      if (flag(rest, "--confirmation") !== "DELETE LIST") {
+        throw new Error('Refusing: pass --confirmation "DELETE LIST"');
+      }
+      await client.deleteShoppingList(id);
+      print({ status: "list deleted", id });
+      return;
+    }
+    case "list add": {
+      const id = Number(rest[0]);
+      const text = rest.slice(1).filter((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--product").join(" ");
+      if (!Number.isInteger(id) || !text) throw new Error("Usage: list add <list_id> <text> [--product id]");
+      print(await client.addShoppingListItem(id, text, numFlag(rest, "--product")));
+      return;
+    }
+    case "list check": {
+      const listId = Number(rest[0]);
+      const itemId = Number(rest[1]);
+      if (!Number.isInteger(listId) || !Number.isInteger(itemId)) {
+        throw new Error("Usage: list check <list_id> <item_id> [--uncheck]");
+      }
+      print(await client.updateShoppingListItem(listId, itemId, { checked: !rest.includes("--uncheck") }));
+      return;
+    }
+    case "list remove-item": {
+      const listId = Number(rest[0]);
+      const itemId = Number(rest[1]);
+      if (!Number.isInteger(listId) || !Number.isInteger(itemId)) {
+        throw new Error("Usage: list remove-item <list_id> <item_id>");
+      }
+      await client.deleteShoppingListItem(listId, itemId);
+      print({ status: "item removed", listId, itemId });
       return;
     }
 

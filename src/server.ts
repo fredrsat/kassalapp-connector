@@ -134,6 +134,114 @@ export async function runMcpServer(): Promise<void> {
   );
 
   server.registerTool(
+    "get_shopping_lists",
+    {
+      description:
+        "List the user's shopping lists on kassal.app (synced with the Kassalapp mobile app). Returns id, title and last-updated. Use get_shopping_list for the items.",
+      inputSchema: {},
+    },
+    async () => jsonResult(await client.getShoppingLists()),
+  );
+
+  server.registerTool(
+    "get_shopping_list",
+    {
+      description:
+        "Get one kassal.app shopping list with its items. Items linked to a product include EAN, the cheapest store right now, potential saving and offer count — use compare_prices_by_ean on the EAN for the full store-by-store breakdown.",
+      inputSchema: {
+        list_id: z.number().int().describe("List id from get_shopping_lists"),
+      },
+    },
+    async ({ list_id }) => jsonResult(await client.getShoppingList(list_id)),
+  );
+
+  server.registerTool(
+    "create_shopping_list",
+    {
+      description: "Create a new shopping list on kassal.app. It appears in the user's Kassalapp mobile app.",
+      inputSchema: {
+        title: z.string().min(1).describe("List title, e.g. 'Ukeshandel uke 37'"),
+      },
+    },
+    async ({ title }) => jsonResult(await client.createShoppingList(title)),
+  );
+
+  server.registerTool(
+    "rename_shopping_list",
+    {
+      description: "Rename an existing kassal.app shopping list.",
+      inputSchema: {
+        list_id: z.number().int(),
+        title: z.string().min(1),
+      },
+    },
+    async ({ list_id, title }) => jsonResult(await client.renameShoppingList(list_id, title)),
+  );
+
+  server.registerTool(
+    "delete_shopping_list",
+    {
+      description:
+        "Delete a kassal.app shopping list and ALL its items. Cannot be undone; the list may have been created by the user in their mobile app, so confirm with the user first. Requires confirmation string 'DELETE LIST'.",
+      inputSchema: {
+        list_id: z.number().int(),
+        confirmation: z.literal("DELETE LIST"),
+      },
+    },
+    async ({ list_id }) => {
+      await client.deleteShoppingList(list_id);
+      return jsonResult({ status: "list deleted", list_id });
+    },
+  );
+
+  server.registerTool(
+    "add_shopping_list_item",
+    {
+      description:
+        "Add an item to a kassal.app shopping list. Pass product_id (from search_products) to link the item to a product — the list then shows which store has it cheapest. Without product_id it is a free-text item.",
+      inputSchema: {
+        list_id: z.number().int(),
+        text: z.string().min(1).describe("Item text shown in the list, e.g. 'Tine Helmelk 1l'"),
+        product_id: z.number().int().optional().describe("Product id from search_products"),
+      },
+    },
+    async ({ list_id, text, product_id }) =>
+      jsonResult(await client.addShoppingListItem(list_id, text, product_id)),
+  );
+
+  server.registerTool(
+    "update_shopping_list_item",
+    {
+      description:
+        "Update a shopping list item: check/uncheck it (checked), change the text, or link a product (product_id).",
+      inputSchema: {
+        list_id: z.number().int(),
+        item_id: z.number().int(),
+        checked: z.boolean().optional(),
+        text: z.string().min(1).optional(),
+        product_id: z.number().int().optional(),
+      },
+    },
+    async ({ list_id, item_id, checked, text, product_id }) =>
+      jsonResult(await client.updateShoppingListItem(list_id, item_id, { checked, text, product_id })),
+  );
+
+  server.registerTool(
+    "remove_shopping_list_item",
+    {
+      description: "Remove one item from a kassal.app shopping list.",
+      inputSchema: {
+        list_id: z.number().int(),
+        item_id: z.number().int(),
+      },
+    },
+    async ({ list_id, item_id }) => {
+      await client.deleteShoppingListItem(list_id, item_id);
+      return jsonResult({ status: "item removed", list_id, item_id });
+    },
+  );
+
+  server.registerTool(
     "get_connector_settings",
     {
       description:

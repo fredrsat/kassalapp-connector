@@ -20,6 +20,9 @@ billigst.
 - Oppslag og sammenligning fra produkt-URL (f.eks. en meny.no-lenke)
 - Prishistorikk i bulk for inntil 100 EAN-er (opptil 90 dager på gratisnivået)
 - Fysiske butikker: søk på navn, kjede eller posisjon (lat/lng + radius)
+- **Handlelister** — les, opprett og oppdater handlelistene på kassal.app-kontoen
+  (synkroniseres med Kassalapp-mobilappen); varer koblet til produkt viser
+  billigste butikk akkurat nå
 
 Søkeresultater komprimeres til feltene en agent trenger (pris, enhetspris,
 butikk, EAN, URL) for å spare tokens; full detalj hentes med `get_product`.
@@ -71,6 +74,9 @@ butikk, EAN, URL) for å spare tokens; full detalj hentes med `get_product`.
 | `get_product_by_url` | Slå opp én vare fra butikk-URL |
 | `get_price_history` | Bulk prishistorikk for inntil 100 EAN-er |
 | `search_stores` / `get_store` | Fysiske butikker (navn, kjede, posisjon) |
+| `get_shopping_lists` / `get_shopping_list` | Les handlelister; produktkoblede varer viser billigste butikk |
+| `create_shopping_list` / `rename_shopping_list` / `delete_shopping_list` | Administrer lister (`delete` krever bekreftelsesstreng) |
+| `add_shopping_list_item` / `update_shopping_list_item` / `remove_shopping_list_item` | Varer: legg til (med valgfri produktkobling), huk av, fjern |
 | `get_connector_settings` | Vis nøkkelstatus og rate limit |
 
 ## CLI
@@ -80,6 +86,8 @@ kassalapp-connector product search melk --store MENY_NO --sort price_asc
 kassalapp-connector product ean 7038010000065      # prissammenligning
 kassalapp-connector prices 7038010000065 --days 90
 kassalapp-connector store search --group KIWI --lat 59.91 --lng 10.75 --km 3
+kassalapp-connector list ls                        # handlelister
+kassalapp-connector list add 12345 "Tine Helmelk 1l" --product 33529
 ```
 
 Kjør uten argumenter for full hjelpetekst.
@@ -92,6 +100,8 @@ Kjør uten argumenter for full hjelpetekst.
 - `store`/`group` filtrerer på kjede (koder som `MENY_NO`, `KIWI` — se
   `store_code` i søkeresultater); `vendor` filtrerer på leverandør
   (f.eks. `TINE SA`). `unique=true` gir katalogtreff uten pris/butikk.
+- Handleliste-endepunktene er ikke med i kassal.app sin API-dokumentasjon,
+  men er verifisert mot API-et (september 2026). De kan endres uten varsel.
 - Uoffisiell klient, ikke tilknyttet kassal.app. Se deres
   [API-vilkår](https://kassal.app/api) for bruksbetingelser.
 

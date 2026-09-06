@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactProduct, comparePrices, extractPrice } from "../src/format.js";
+import { compactListItem, compactProduct, comparePrices, extractPrice } from "../src/format.js";
 import type { EanResponse, Product } from "../src/types.js";
 
 const listProduct: Product = {
@@ -95,5 +95,34 @@ describe("comparePrices", () => {
     const result = comparePrices({ ean: "1", products: [unpriced] });
     expect(result.cheapest).toBeUndefined();
     expect(result.potential_saving).toBeUndefined();
+  });
+});
+
+describe("compactListItem", () => {
+  it("reduserer produktkoblede varer til billigste butikk og besparelse", () => {
+    const item = {
+      id: 7,
+      text: "Helmelk",
+      checked: false,
+      product: {
+        ean: "7038010000065",
+        products: [eanProduct("Meny", 26.9), eanProduct("Kiwi", 22.4)],
+      },
+    };
+    const compact = compactListItem(item, NOW);
+    expect(compact).toEqual({
+      id: 7,
+      text: "Helmelk",
+      checked: false,
+      ean: "7038010000065",
+      cheapest: { store: "Kiwi", price: 22.4 },
+      potential_saving: 4.5,
+      offer_count: 2,
+    });
+  });
+
+  it("lar tekstvarer uten produkt passere uten prisfelter", () => {
+    const compact = compactListItem({ id: 8, text: "Gjærbakst", checked: true, product: null }, NOW);
+    expect(compact).toEqual({ id: 8, text: "Gjærbakst", checked: true });
   });
 });
