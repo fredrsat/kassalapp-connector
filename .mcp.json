@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kassalapp": {
+      "command": "node",
+      "args": ["/Users/fredrsat/Code/kassalapp-connector/dist/index.js", "mcp"]
+    }
+  }
+}
