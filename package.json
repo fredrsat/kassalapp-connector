@@ -1,7 +1,7 @@
 {
   "name": "kassalapp-connector",
   "version": "0.1.0",
-  "description": "MCP server and CLI for the kassal.app grocery price API (personal use)",
+  "description": "MCP-server og CLI for kassal.app sitt dagligvarepris-API (personlig bruk)",
   "type": "module",
   "bin": {
     "kassalapp-connector": "dist/index.js"
