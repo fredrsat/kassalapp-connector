@@ -1,0 +1,25 @@
+# kassalapp-connector
+
+> MCP-server og CLI for kassal.app sitt API — norske dagligvarepriser på tvers av kjeder (Meny, Kiwi, Rema 1000, Oda, Joker, Spar, Coop, Bunnpris m.fl.) for prissammenligning, prishistorikk og handlelister.
+
+Typisk bruk: en handleagent søker opp varen, sammenligner pris på tvers av butikker med `compare_prices_by_ean` (billigste butikk, sortert liste, besparelse i kroner) og legger varen i handlelisten der den er billigst. Priser eldre enn 90 dager markeres `stale` og holdes utenfor billigst-beregningen. Søkeresultater komprimeres til feltene en agent trenger for å spare tokens; full detalj hentes med `get_product`.
+
+Stack: TypeScript (ESM), Node >= 18, `@modelcontextprotocol/sdk`, zod, vitest. Krever API-nøkkel fra kassal.app (gratis for ikke-kommersiell bruk, 60 forespørsler/min); nøkkelen leses fra `KASSALAPP_API_KEY`, `~/.kassalapp-connector/config.json` eller `.env`. API-et er rent lesende — ingen bestilling. Handleliste-endepunktene er udokumenterte hos kassal.app og kan endres uten varsel. Uoffisiell klient, ikke tilknyttet kassal.app.
+
+## Docs
+
+- [README](https://github.com/fredrsat/kassalapp-connector/blob/main/README.md): funksjoner, oppsett, alle MCP-verktøyene, CLI-eksempler og merknader om API-et
+- [LICENSE](https://github.com/fredrsat/kassalapp-connector/blob/main/LICENSE): MIT
+
+## Source
+
+- [src/index.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/src/index.ts): CLI-inngangspunkt (product, prices, store, list, auth, mcp)
+- [src/server.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/src/server.ts): MCP-serveren og alle verktøydefinisjonene
+- [src/kassalapp-client.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/src/kassalapp-client.ts): HTTP-klient mot kassal.app-API-et med nøkkelhåndtering og 429-retry
+- [src/format.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/src/format.ts): komprimering/formatering av svar (prissammenligning, stale-logikk)
+- [src/types.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/src/types.ts): API-typer
+
+## Optional
+
+- [tests/format.test.ts](https://github.com/fredrsat/kassalapp-connector/blob/main/tests/format.test.ts): tester for formatering og prissammenligning
+- [package.json](https://github.com/fredrsat/kassalapp-connector/blob/main/package.json): scripts og avhengigheter
